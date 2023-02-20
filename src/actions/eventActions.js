@@ -13,7 +13,7 @@ export const listEvent = createAsyncThunk(
 
 			// make request to backend
 			const { data } = await axios.get(
-				`${process.env.REACT_APP_BASE_BACKEND_URL}/api/v1/event/`,
+				`https://resource-management-backend.herokuapp.com/api/v1/event/`,
 				config
 			);
 
@@ -45,7 +45,7 @@ export const createEvent = createAsyncThunk(
 
 			// make request to backend
 			const { data } = await axios.post(
-				`${process.env.REACT_APP_BASE_BACKEND_URL}/api/v1/event/`,
+				`https://resource-management-backend.herokuapp.com/api/v1/event/`,
 				currentEvent,
 				config
 			);
@@ -77,7 +77,7 @@ export const listBookingData = createAsyncThunk(
 
 			// make request to backend
 			const { data } = await axios.get(
-				`${process.env.REACT_APP_BASE_BACKEND_URL}/api/v1/event/booking`,
+				`https://resource-management-backend.herokuapp.com/api/v1/event/booking`,
 				config
 			);
 
