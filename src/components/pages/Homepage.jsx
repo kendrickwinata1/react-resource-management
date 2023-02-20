@@ -10,6 +10,13 @@ import { Form, Button, Row, Col, Table } from "react-bootstrap";
 import { useState } from "react";
 import Message from "../features/Message";
 import Loader from "../features/Loader";
+import { useDispatch, useSelector } from "react-redux";
+
+import {
+	createEvent,
+	listEvent,
+	listBookingData,
+} from "../../actions/eventActions";
 
 function renderEventContent(eventInfo) {
 	return (
@@ -40,18 +47,76 @@ function Homepage() {
 		weekendsVisible: true,
 		currentEvents: [],
 	};
+
+	const combineDateAndTime = function (date, time) {
+		console.log(date);
+		console.log(time);
+	};
+
+	const eventDetails = useSelector((state) => state.event.eventDetails);
+	const bookingDatas = useSelector((state) => state.event.bookingDatas);
+	const error = useSelector((state) => state.event.error);
+	const loading = useSelector((state) => state.event.loading);
+	console.log(bookingDatas);
+	console.log(eventDetails);
+
+	const dispatch = useDispatch();
+	const [currentEvent, setCurrentEvent] = useState({});
 	const [events, setEvents] = useState([]);
+	const [bookingEvents, setBookingEvents] = useState({});
 	const [state, setState] = useState(currentState);
 	const [title, setTitle] = useState("");
 	const [startDate, setStartDate] = useState("");
 	const [startTime, setStartTime] = useState("");
 	const [endDate, setEndDate] = useState("");
 	const [endTime, setEndTime] = useState("");
-	const [category, setCategory] = useState("");
+	const [category, setCategory] = useState("Team Calendar");
 	const [color, setColor] = useState("Green");
 	const { handleSubmit } = useForm();
 	const calendarRef = React.createRef();
-	console.log(calendarRef);
+
+	useEffect(() => {
+		setEvents(eventDetails);
+		dispatch(listEvent());
+		dispatch(listBookingData());
+	}, []);
+
+	useEffect(() => {
+		const newBookingDatas = bookingDatas.map((x) => {
+			return {
+				id: x._id,
+				title: `${x.code} \n (${x.status})`,
+				start: new Date(
+					x.date.split("T")[0] + " " + x.start_time + " UTC"
+				).toISOString(),
+				end: new Date(
+					x.date.split("T")[0] + " " + x.end_time + " UTC"
+				).toISOString(),
+				category: x.type,
+				color: x.status == "CANCELLED" ? "red" : "green",
+			};
+		});
+
+		setBookingEvents(newBookingDatas);
+		console.log(newBookingDatas);
+	}, [bookingDatas]);
+
+	useEffect(() => {
+		if (category === "Meetings") {
+			setColor("Orange");
+		} else if (category === "Team Calendar") {
+			setColor("Green");
+		} else if (category === "Get-together") {
+			setColor("Red");
+		} else if (category === "Birthdays") {
+			setColor("Purple");
+		}
+	}, [category]);
+
+	useEffect(() => {
+		dispatch(listEvent());
+		setEvents([...eventDetails, currentEvent]);
+	}, [currentEvent]);
 
 	const handleWeekendsToggle = () => {
 		setState({
@@ -68,33 +133,20 @@ function Homepage() {
 		const endDateandTime = new Date(
 			endDate + " " + endTime + " UTC"
 		).toISOString();
-		console.log(startDateandTime);
 
-		console.log(color);
+		const currentEvent = {
+			id: createEventId(),
+			title,
+			start: startDateandTime,
+			end: endDateandTime,
+			category: category,
+			color: color,
+		};
 
-		setEvents([
-			...events,
-			{
-				id: createEventId(),
-				title,
-				start: startDateandTime,
-				end: endDateandTime,
-				color: color,
-			},
-		]);
+		setEvents([...events, currentEvent]);
+
+		dispatch(createEvent(currentEvent));
 	};
-
-	useEffect(() => {
-		if (category === "Meetings") {
-			setColor("Orange");
-		} else if (category === "Team Calendar") {
-			setColor("Green");
-		} else if (category === "Get-together") {
-			setColor("Red");
-		} else if (category === "Birthdays") {
-			setColor("Purple");
-		}
-	}, [category]);
 
 	const handleDateSelect = (selectInfo) => {
 		let title = prompt("Please enter a new title for your event");
@@ -127,14 +179,6 @@ function Homepage() {
 			<div className="app">
 				<Col md={3} className="sidebar">
 					<div className="sidebar-section">
-						<h3>Instructions</h3>
-						<ul>
-							<li>
-								Select dates and you will be prompted to create a new event
-							</li>
-							<li>Drag, drop, and resize events</li>
-							<li>Click an event to delete it</li>
-						</ul>
 						<Form onSubmit={handleSubmit(submitForm)}>
 							<Form.Group controlId="event-title">
 								<Form.Label>Title</Form.Label>
@@ -205,40 +249,40 @@ function Homepage() {
 							</Button>
 						</Form>
 					</div>
-					<div className="sidebar-section">
-						<label>
-							<input
-								type="checkbox"
-								checked={state.weekendsVisible}
-								onChange={handleWeekendsToggle}></input>
-							toggle weekends
-						</label>
-					</div>
-					<div className="sidebar-section">
-						<h3>All Events ({state.currentEvents.length})</h3>
-						<ul>{state.currentEvents.map(renderSidebarEvent)}</ul>
-					</div>
 				</Col>
 
 				<Col md={9}>
-					<FullCalendar
-						plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-						headerToolbar={{
-							left: "prev,next today",
-							center: "title",
-							right: "dayGridMonth,timeGridWeek,timeGridDay",
-						}}
-						initialView="dayGridMonth"
-						editable={true}
-						selectable={true}
-						events={events}
-						select={handleDateSelect}
-						eventContent={renderEventContent}
-						eventClick={handleEventClick}
-						eventsSet={handleEvents}
-						weekends={state.weekendsVisible}
-						initialEvents={INITIAL_EVENTS}
-					/>
+					{error ? (
+						<>
+							<Message variant="danger">{error}</Message>
+						</>
+					) : loading ? (
+						<>
+							<Loader />
+						</>
+					) : (
+						<>
+							<FullCalendar
+								plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+								headerToolbar={{
+									left: "prev,next today",
+									center: "title",
+									right: "dayGridMonth,timeGridWeek,timeGridDay",
+								}}
+								initialView="dayGridMonth"
+								editable={true}
+								selectable={true}
+								events={(events, bookingEvents)}
+								select={handleDateSelect}
+								eventContent={renderEventContent}
+								eventClick={handleEventClick}
+								eventsSet={handleEvents}
+								weekends={state.weekendsVisible}
+								initialEvents={eventDetails}
+								style={{ fontSize: "8px" }}
+							/>
+						</>
+					)}
 				</Col>
 			</div>
 		</Row>

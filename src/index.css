@@ -47,10 +47,19 @@ b { /* used for event dates/times */
 }
 
 .fc { /* the calendar root */
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 0 auto;
+  
 }
 
+.fc-daygrid-day-frame, .fc-daygrid-day-events, .fc-daygrid-day-event-harness,
+.fc-daygrid-event{
+  padding: 1px 1px;
+  white-space: normal !important;
+  align-items: normal !important;
+  }
+
+ 
 
 
 
